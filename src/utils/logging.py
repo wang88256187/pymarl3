@@ -1,7 +1,15 @@
 from collections import defaultdict
 import logging
 import numpy as np
+import os
 import torch as th
+
+def create_dir(path):
+    try:
+        os.makedirs(path)
+        print("目录创建成功！")
+    except FileExistsError:
+        print("目录已存在！")
 
 class Logger:
     def __init__(self, console_logger):
@@ -10,6 +18,7 @@ class Logger:
         self.use_tb = False
         self.use_sacred = False
         self.use_hdf = False
+        self.use_wandb = False
 
         self.stats = defaultdict(lambda: [])
 
@@ -23,6 +32,29 @@ class Logger:
     def setup_sacred(self, sacred_run_dict):
         self.sacred_info = sacred_run_dict.info
         self.use_sacred = True
+
+    def setup_wandb(self, args, directory_name, unique_token):
+        create_dir(directory_name)
+
+        if args.name == "rdhnet_pp":
+            name = "seed" + str(args.seed) + "_" + str(args.max_nums_refer_agent) + "r_" + unique_token
+        else:
+            name = "seed" + str(args.seed) + "_" + unique_token
+
+        if args.use_pomdp:
+            name = "POMDP_" + name
+
+        wandb.init(config=args,
+                               project="IRMARL",
+                               entity=args.user_name,
+                               notes=socket.gethostname(),
+                               name=name,
+                               group=args.env_args['scenario_name'],
+                               dir=directory_name,
+                               job_type="training",
+                               reinit=True)
+        self.use_wandb = True
+
 
     def log_stat(self, key, value, t, to_sacred=True):
         self.stats[key].append((t, value))
@@ -38,6 +70,9 @@ class Logger:
                 self.sacred_info["{}_T".format(key)] = [t]
                 self.sacred_info[key] = [value]
 
+        if self.use_wandb:
+            wandb.log({key: value}, step=t)
+
     def print_recent_stats(self):
         log_str = "Recent Stats | t_env: {:>10} | Episode: {:>8}\n".format(*self.stats["episode"][-1])
         i = 0
@@ -46,12 +81,10 @@ class Logger:
                 continue
             i += 1
             window = 5 if k != "epsilon" else 1
-            item = "{:.4f}".format(th.mean(th.tensor([float(x[1]) for x in self.stats[k][-window:]])))
+            item = "{:.4f}".format(np.mean([x[1] if isinstance(x[1], float) else x[1].item() for x in self.stats[k][-window:]]))
             log_str += "{:<25}{:>8}".format(k + ":", item)
             log_str += "\n" if i % 4 == 0 else "\t"
         self.console_logger.info(log_str)
-        # Reset stats to avoid accumulating logs in memory
-        self.stats = defaultdict(lambda: [])
 
 
 # set up a custom logger
