@@ -57,4 +57,5 @@ cpu_inference: True
 asn_hidden_size: 32 # 64
 
 ## --- wandb log ---
+user_name: dongzi
 use_wandb: False

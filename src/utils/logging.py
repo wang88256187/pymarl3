@@ -2,7 +2,8 @@ from collections import defaultdict
 import logging
 import numpy as np
 import os
-import torch as th
+import wandb
+import socket
 
 def create_dir(path):
     try:
@@ -36,13 +37,8 @@ class Logger:
     def setup_wandb(self, args, directory_name, unique_token):
         create_dir(directory_name)
 
-        if args.name == "rdhnet_pp":
-            name = "seed" + str(args.seed) + "_" + str(args.max_nums_refer_agent) + "r_" + unique_token
-        else:
-            name = "seed" + str(args.seed) + "_" + unique_token
 
-        if args.use_pomdp:
-            name = "POMDP_" + name
+        name = "seed" + str(args.seed) + unique_token
 
         wandb.init(config=args,
                                project="IRMARL",
