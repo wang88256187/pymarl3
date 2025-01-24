@@ -46,11 +46,12 @@ class Logger:
                                entity=args.user_name,
                                notes=socket.gethostname(),
                                name=name,
-                               group=args.env_args['scenario_name'],
+                               group=args.env_args['map_name'],
                                dir=directory_name,
                                job_type="training",
                                reinit=True)
         self.use_wandb = True
+        print("use wandb!")
 
 
     def log_stat(self, key, value, t, to_sacred=True):
